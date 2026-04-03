@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: ai-chatbot
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY}
+      chat:
+        options:
+          model: gpt-4.1-mini
+          temperature: 1
+
+server:
+  port: 8081
