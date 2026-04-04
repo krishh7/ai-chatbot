@@ -1,6 +1,7 @@
 spring:
   application:
     name: ai-chatbot
+# Default Open AI
   ai:
     openai:
       api-key: ${OPENAI_API_KEY}
@@ -11,3 +12,13 @@ spring:
 
 server:
   port: 8081
+
+#Gemini AI
+gemini:
+  api:
+    key: ${GEMINI_API_KEY}
+    url: https://generativelanguage.googleapis.com/v1beta/openai
+    completions:
+      path: /chat/completions
+    model:
+      name: gemini-3-flash-preview
