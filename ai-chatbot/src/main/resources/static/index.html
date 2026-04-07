@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Streaming Chat Demo (HungryCoders)</title>
+    <style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+    }
+
+    .container {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        width: 100%;
+        max-width: 800px;
+        padding: 30px;
+    }
+
+    h1 {
+        color: #333;
+        margin-bottom: 10px;
+        font-size: 28px;
+    }
+
+    .subtitle {
+        color: #666;
+        margin-bottom: 30px;
+        font-size: 14px;
+    }
+
+    .input-section {
+        margin-bottom: 20px;
+    }
+
+    label {
+        display: block;
+        margin-bottom: 8px;
+        color: #555;
+        font-weight: 600;
+        font-size: 14px;
+    }
+
+    input, select, textarea {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 14px;
+        font-family: inherit;
+        transition: border-color 0.3s;
+    }
+
+    input:focus, select:focus, textarea:focus {
+        outline: none;
+        border-color: #667eea;
+    }
+
+    textarea {
+        resize: vertical;
+        min-height: 100px;
+    }
+
+    button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 14px 30px;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        width: 100%;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    button:active {
+        transform: translateY(0);
+    }
+
+    button:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .response-section {
+        margin-top: 30px;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 12px;
+        min-height: 200px;
+    }
+
+    .response-label {
+        color: #555;
+        font-weight: 600;
+        margin-bottom: 15px;
+        font-size: 14px;
+    }
+
+    #response {
+        color: #333;
+        line-height: 1.6;
+        white-space: pre-wrap;
+        font-size: 15px;
+    }
+
+    .typing-indicator {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        background: #667eea;
+        border-radius: 50%;
+        animation: blink 1.4s infinite;
+        margin-left: 3px;
+    }
+
+    @keyframes blink {
+        0%, 100% { opacity: 0; }
+        50% { opacity: 1; }
+    }
+
+    .settings-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+
+    @media (max-width: 600px) {
+        .settings-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+    <h1>AI Streaming Chat (HungryCoders)</h1>
+    <p class="subtitle">Watch AI respond in real-time, word by word!</p>
+
+    <div class="settings-grid">
+        <div class="input-section">
+            <label for="provider">Provider</label>
+            <select id="provider">
+                <option value="open-ai">OpenAI</option>
+                <option value="gemini">Gemini</option>
+            </select>
+        </div>
+
+        <div class="input-section">
+            <label for="model">Model (Optional)</label>
+            <input type="text" id="model" placeholder="e.g., gpt-5 or leave empty">
+        </div>
+    </div>
+
+    <div class="input-section">
+        <label for="message">Your Message</label>
+        <textarea id="message" placeholder="Ask me anything...">Explain Spring Boot in simple terms</textarea>
+    </div>
+
+    <button id="streamBtn" onclick="startStreaming()">Start Streaming</button>
+
+    <div class="response-section">
+        <div class="response-label">AI Response:</div>
+        <div id="response"></div>
+    </div>
+</div>
+
+<script>
+  let eventSource = null;
+
+  function startStreaming() {
+      const message = document.getElementById('message').value;
+      const provider = document.getElementById('provider').value;
+      const model = document.getElementById('model').value;
+      const responseDiv = document.getElementById('response');
+      const button = document.getElementById('streamBtn');
+
+      if (!message.trim()) {
+          alert('Please enter a message!');
+          return;
+      }
+
+      // Close existing connection if any
+      if (eventSource) {
+          eventSource.close();
+      }
+
+      // Clear previous response
+      responseDiv.innerHTML = '<span class="typing-indicator"></span>';
+
+      // Disable button
+      button.disabled = true;
+      button.textContent = 'Streaming...';
+
+      // Build URL with parameters
+      let url = `ChatBot/api/stream?message=${encodeURIComponent(message)}&provider=${provider}`;
+      if (model.trim()) {
+          url += `&model=${encodeURIComponent(model)}`;
+      }
+
+      // Create EventSource for Server-Sent Events
+      eventSource = new EventSource(url);
+
+      let fullResponse = '';
+
+      eventSource.onmessage = function(event) {
+          fullResponse += ' '+event.data;
+          responseDiv.textContent = fullResponse;
+
+          // Auto-scroll to bottom
+          responseDiv.scrollTop = responseDiv.scrollHeight;
+      };
+
+      eventSource.onerror = function(error) {
+          console.error('EventSource error:', error);
+          eventSource.close();
+
+          if (fullResponse === '') {
+              responseDiv.textContent = 'Error: Failed to connect to streaming endpoint. Make sure the server is running!';
+          }
+
+          button.disabled = false;
+          button.textContent = 'Start Streaming';
+      };
+
+      eventSource.addEventListener('done', function() {
+          eventSource.close();
+          button.disabled = false;
+          button.textContent = 'Start Streaming';
+      });
+  }
+
+  // Allow Enter key to submit (Ctrl+Enter for new line)
+  document.getElementById('message').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.ctrlKey && !e.shiftKey) {
+          e.preventDefault();
+          startStreaming();
+      }
+  });
+</script>
+</body>
+</html>
