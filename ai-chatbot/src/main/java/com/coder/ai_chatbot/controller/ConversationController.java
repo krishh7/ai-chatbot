@@ -108,13 +108,13 @@ public class ConversationController {
     @PostMapping("/{conversationId}")
     public Map<String, Object> chat(
             @PathVariable String conversationId,
-            @RequestHeader(value = "AI-Provider", defaultValue = "openai") String provider,
+            @RequestHeader(value = "AI-Provider", defaultValue = "open-ai") String provider,
             @RequestHeader(value = "AI-Model", required = false) String model,
             @RequestBody String message
     ) {
 
         // Validate: For non-OpenAI providers, model is mandatory
-        if (!"openai".equalsIgnoreCase(provider) &&
+        if (!"open-ai".equalsIgnoreCase(provider) &&
                 (model == null || model.isEmpty())) {
             return Map.of(
                     "error", true,
